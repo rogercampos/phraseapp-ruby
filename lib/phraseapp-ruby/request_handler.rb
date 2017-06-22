@@ -67,7 +67,7 @@ module PhraseApp
     end
   end
 
-  def self.send_request_paginated(credentials, method, path_with_query, ctype, body, status, page, per_page)
+  def self.send_request_paginated(credentials, opts, method, path_with_query, ctype, body, status, page, per_page)
     uri = URI.parse(path_with_query)
 
     hash = if uri.query
@@ -81,11 +81,10 @@ module PhraseApp
     query_str = URI.encode_www_form(hash)
     path = [uri.path, query_str].compact.join('?')
 
-    return send_request(credentials, method, path, ctype, body, status)
+    return send_request(credentials, opts, method, path, ctype, body, status)
   end
-
-
-  def self.send_request(credentials, method, path, ctype, data, status)
+  
+  def self.send_request(credentials, opts, method, path, ctype, data, status)
     req = Net::HTTPGenericRequest.new(
         method,
         Net::HTTP.const_get(method.capitalize).const_get(:REQUEST_HAS_BODY),
@@ -106,13 +105,13 @@ module PhraseApp
       req["Content-Type"] = ctype
     end
 
-    resp, err = http_send(credentials, req, status)
+    resp, err = http_send(credentials, opts, req, status)
 
 
     return resp, err
   end
 
-  def self.http_send(credentials, req, status)
+  def self.http_send(credentials, opts, req, status)
     err = credentials.authenticate(req)
     if err != nil
       return nil, err
@@ -126,7 +125,7 @@ module PhraseApp
       puts uri.inspect
     end
 
-    Net::HTTP.start(uri.host, uri.port) do |http|
+    Net::HTTP.start(uri.host, uri.port, opts) do |http|
       if uri.is_a?(URI::HTTPS)
         http.use_ssl = true
         if credentials.skip_ssl_verification

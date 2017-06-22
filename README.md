@@ -32,7 +32,8 @@ require 'phraseapp-ruby'
 
 # Setup Authentication Credentials and Client
 credentials = PhraseApp::Auth::Credentials.new(token: "YOUR_ACCESS_TOKEN")
-client = PhraseApp::Client.new(credentials)
+opts = { read_timeout: 30 } # Additional options that will be forwarded to Net::Http#start
+client = PhraseApp::Client.new(credentials, opts)
 
 # List projects page 1 and list 10 projects per_page
 rsp, err = client.projects_list(1, 10)
