@@ -70,7 +70,11 @@ module PhraseApp
   def self.send_request_paginated(credentials, method, path_with_query, ctype, body, status, page, per_page)
     uri = URI.parse(path_with_query)
 
-    hash = if uri.query then CGI::parse(uri.query) else {} end
+    hash = if uri.query
+             CGI::parse(uri.query)
+           else
+             {}
+           end
     hash["page"] = page
     hash["per_page"] = per_page
 
@@ -80,12 +84,14 @@ module PhraseApp
     return send_request(credentials, method, path, ctype, body, status)
   end
 
+
   def self.send_request(credentials, method, path, ctype, data, status)
-    req = Net::HTTPGenericRequest.new(method,
+    req = Net::HTTPGenericRequest.new(
+        method,
         Net::HTTP.const_get(method.capitalize).const_get(:REQUEST_HAS_BODY),
         Net::HTTP.const_get(method.capitalize).const_get(:RESPONSE_HAS_BODY),
-        path)
-
+        path
+    )
 
     if credentials.debug
       puts "-------"
@@ -120,31 +126,31 @@ module PhraseApp
       puts uri.inspect
     end
 
-    http = Net::HTTP.new(uri.host, uri.port)
-
-    if uri.is_a?(URI::HTTPS)
-      http.use_ssl = true
-      if credentials.skip_ssl_verification
-        http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-      else
-        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+    Net::HTTP.start(uri.host, uri.port) do |http|
+      if uri.is_a?(URI::HTTPS)
+        http.use_ssl = true
+        if credentials.skip_ssl_verification
+          http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+        else
+          http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+        end
       end
+
+      if credentials.debug
+        puts "method:"
+        puts req.method
+        puts "path:"
+        puts req.path
+        puts "body:"
+        puts req.body.inspect
+        puts "-------"
+      end
+      resp = http.request(req)
+
+      err = handleResponseStatus(resp, status)
+
+      [resp, err]
     end
-
-    if credentials.debug
-      puts "method:"
-      puts req.method
-      puts "path:"
-      puts req.path
-      puts "body:"
-      puts req.body.inspect
-      puts "-------"
-    end
-    resp = http.request(req)
-
-    err = handleResponseStatus(resp, status)
-
-    return resp, err
   end
 
   def self.handleResponseStatus(resp, expectedStatus)
